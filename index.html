@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Panel de Ubicación del Equipo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   TOKENS DE DISEÑO
+   ============================================================ */
+:root{
+    /* Paleta — panel de control industrial, no "tarjetas SaaS" */
+    --grafito-950:#0f1115;
+    --grafito-900:#161a20;
+    --grafito-800:#1d222a;
+    --grafito-700:#272d37;
+    --grafito-600:#3a414d;
+    --linea:#2b313b;
+
+    --texto-principal:#eef1f5;
+    --texto-secundario:#9aa3b2;
+    --texto-terciario:#6b7384;
+
+    --planta1:#3ddc84;
+    --planta1-glow:rgba(61,220,132,.18);
+    --planta2:#ffb547;
+    --planta2-glow:rgba(255,181,71,.18);
+    --fuera:#ff5d6c;
+    --fuera-glow:rgba(255,93,108,.18);
+    --acento:#5b8cff;
+
+    --radio-l:18px;
+    --radio-m:12px;
+    --radio-s:8px;
+
+    --fuente-display:'Archivo Expanded',sans-serif;
+    --fuente-cuerpo:'Inter',sans-serif;
+    --fuente-mono:'Space Mono',monospace;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,body{
+    background:var(--grafito-950);
+    color:var(--texto-principal);
+    font-family:var(--fuente-cuerpo);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+}
+
+body{
+    background-image:
+        radial-gradient(circle at 15% 0%, rgba(91,140,255,.07), transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(61,220,132,.05), transparent 40%);
+    padding:24px 20px 60px;
+}
+
+.container{
+    max-width:1180px;
+    margin:0 auto;
+}
+
+/* ============================================================
+   ENCABEZADO
+   ============================================================ */
+header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+}
+
+.titulo-bloque .eyebrow{
+    font-family:var(--fuente-mono);
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--texto-terciario);
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+header h1{
+    font-family:var(--fuente-display);
+    font-weight:800;
+    font-size:clamp(1.6rem, 4vw, 2.3rem);
+    letter-spacing:-.01em;
+    line-height:1.05;
+}
+
+.sync-estado{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:var(--grafito-800);
+    border:1px solid var(--linea);
+    padding:9px 16px;
+    border-radius:999px;
+    font-family:var(--fuente-mono);
+    font-size:.78rem;
+    color:var(--texto-secundario);
+    white-space:nowrap;
+}
+
+.punto-vivo{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--planta1);
+    box-shadow:0 0 0 0 var(--planta1-glow);
+    animation:pulso 2s infinite;
+    flex-shrink:0;
+}
+
+.punto-vivo.offline{
+    background:var(--fuera);
+    box-shadow:0 0 0 0 var(--fuera-glow);
+    animation:none;
+}
+
+@keyframes pulso{
+    0%{box-shadow:0 0 0 0 var(--planta1-glow);}
+    70%{box-shadow:0 0 0 8px transparent;}
+    100%{box-shadow:0 0 0 0 transparent;}
+}
+
+@media(prefers-reduced-motion:reduce){
+    .punto-vivo{animation:none;}
+}
+
+/* ============================================================
+   DASHBOARD DE CONTADORES
+   ============================================================ */
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin-bottom:28px;
+}
+
+.stat{
+    background:var(--grafito-900);
+    border:1px solid var(--linea);
+    border-radius:var(--radio-l);
+    padding:18px 16px;
+    position:relative;
+    overflow:hidden;
+}
+
+.stat::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;
+    width:100%;
+    height:3px;
+}
+
+.stat.p1::before{background:var(--planta1);}
+.stat.p2::before{background:var(--planta2);}
+.stat.out::before{background:var(--fuera);}
+
+.stat .fila-stat{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+}
+
+.stat h2{
+    font-family:var(--fuente-display);
+    font-weight:800;
+    font-size:clamp(1.8rem, 5vw, 2.6rem);
+    line-height:1;
+}
+
+.stat p{
+    color:var(--texto-secundario);
+    font-size:.78rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-top:6px;
+    font-weight:600;
+}
+
+.p1 h2{color:var(--planta1);}
+.p2 h2{color:var(--planta2);}
+.out h2{color:var(--fuera);}
+
+/* ============================================================
+   BARRA DE ACCIÓN — agregar integrante
+   ============================================================ */
+.barra-accion{
+    display:flex;
+    gap:10px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+}
+
+.barra-accion input{
+    flex:1;
+    min-width:180px;
+    background:var(--grafito-900);
+    border:1px solid var(--linea);
+    color:var(--texto-principal);
+    padding:13px 16px;
+    border-radius:var(--radio-m);
+    font-size:.95rem;
+    font-family:var(--fuente-cuerpo);
+}
+
+.barra-accion input::placeholder{color:var(--texto-terciario);}
+
+.barra-accion input:focus,
+select:focus,
+.btn:focus,
+.icon-btn:focus{
+    outline:2px solid var(--acento);
+    outline-offset:2px;
+}
+
+.btn{
+    background:var(--acento);
+    color:#fff;
+    border:none;
+    padding:13px 22px;
+    border-radius:var(--radio-m);
+    font-weight:600;
+    font-size:.95rem;
+    cursor:pointer;
+    transition:filter .15s, transform .15s;
+    white-space:nowrap;
+}
+
+.btn:hover{filter:brightness(1.1);}
+.btn:active{transform:scale(.97);}
+
+/* ============================================================
+   GRID DE GAFETES (TARJETAS)
+   ============================================================ */
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:16px;
+}
+
+.card{
+    background:var(--grafito-900);
+    border:1px solid var(--linea);
+    border-radius:var(--radio-l);
+    padding:20px;
+    transition:border-color .2s, transform .2s;
+    position:relative;
+}
+
+.card:hover{
+    border-color:var(--grafito-600);
+    transform:translateY(-2px);
+}
+
+.card-top{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:16px;
+}
+
+.avatar{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    background:var(--grafito-700);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--fuente-display);
+    font-weight:700;
+    font-size:1.1rem;
+    color:var(--texto-principal);
+    flex-shrink:0;
+    border:2px solid var(--linea);
+}
+
+.nombre-bloque{
+    flex:1;
+    min-width:0;
+}
+
+.nombre{
+    font-size:1.05rem;
+    font-weight:700;
+    margin-bottom:2px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.nombre-input{
+    background:transparent;
+    border:none;
+    border-bottom:1px dashed var(--grafito-600);
+    color:var(--texto-principal);
+    font-size:1.05rem;
+    font-weight:700;
+    font-family:var(--fuente-cuerpo);
+    width:100%;
+    padding:2px 0;
+    display:none;
+}
+
+.nombre-input:focus{outline:none; border-color:var(--acento);}
+
+.fecha{
+    font-size:.74rem;
+    color:var(--texto-terciario);
+    font-family:var(--fuente-mono);
+}
+
+.icon-btn{
+    background:none;
+    border:none;
+    color:var(--texto-terciario);
+    cursor:pointer;
+    width:32px;
+    height:32px;
+    border-radius:var(--radio-s);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    transition:background .15s, color .15s;
+}
+
+.icon-btn:hover{
+    background:var(--grafito-700);
+    color:var(--texto-principal);
+}
+
+.icon-btn.eliminar:hover{
+    color:var(--fuera);
+}
+
+.estado{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 14px;
+    border-radius:999px;
+    font-size:.82rem;
+    font-weight:700;
+    margin-bottom:14px;
+}
+
+.estado::before{
+    content:'';
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:currentColor;
+}
+
+.planta1{ background:var(--planta1-glow); color:var(--planta1); }
+.planta2{ background:var(--planta2-glow); color:var(--planta2); }
+.fuera{ background:var(--fuera-glow); color:var(--fuera); }
+
+select{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--linea);
+    border-radius:var(--radio-m);
+    font-size:.9rem;
+    background:var(--grafito-800);
+    color:var(--texto-principal);
+    cursor:pointer;
+    font-family:var(--fuente-cuerpo);
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239aa3b2' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+}
+
+.vacio{
+    grid-column:1/-1;
+    text-align:center;
+    padding:60px 20px;
+    color:var(--texto-terciario);
+}
+
+.vacio strong{
+    display:block;
+    color:var(--texto-secundario);
+    font-size:1rem;
+    margin-bottom:6px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media(max-width:680px){
+    body{padding:16px 14px 50px;}
+
+    header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:14px;
+    }
+
+    .sync-estado{align-self:stretch; justify-content:center;}
+
+    .dashboard{
+        grid-template-columns:1fr 1fr 1fr;
+        gap:8px;
+    }
+
+    .stat{padding:14px 10px;}
+    .stat p{font-size:.62rem;}
+
+    .barra-accion{flex-direction:column;}
+    .barra-accion .btn{width:100%;}
+
+    .grid{grid-template-columns:1fr;}
+}
+
+@media(max-width:380px){
+    .dashboard{grid-template-columns:1fr;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+    <div class="titulo-bloque">
+        <div class="eyebrow"><span>●</span> PANEL EN VIVO</div>
+        <h1>Ubicación del equipo</h1>
+    </div>
+    <div class="sync-estado">
+        <span class="punto-vivo" id="puntoVivo"></span>
+        <span id="textoSync">Conectando…</span>
+    </div>
+</header>
+
+<div class="dashboard">
+    <div class="stat p1">
+        <div class="fila-stat"><h2 id="countP1">0</h2></div>
+        <p>En Planta 1</p>
+    </div>
+
+    <div class="stat p2">
+        <div class="fila-stat"><h2 id="countP2">0</h2></div>
+        <p>En Planta 2</p>
+    </div>
+
+    <div class="stat out">
+        <div class="fila-stat"><h2 id="countOut">0</h2></div>
+        <p>Fuera de plantas</p>
+    </div>
+</div>
+
+<div class="barra-accion">
+    <input type="text" id="inputNuevoNombre" placeholder="Nombre del nuevo integrante…" maxlength="40">
+    <button class="btn" id="btnAgregar">+ Agregar integrante</button>
+</div>
+
+<div class="grid" id="equipo">
+    <div class="vacio" id="vacioMsg">
+        <strong>Aún no hay integrantes</strong>
+        Agrega el primero con el botón de arriba.
+    </div>
+</div>
+
+</div>
+
+<!-- ============================================================
+     FIREBASE
+     ============================================================ -->
+<script type="module">
+
+/* ----------------------------------------------------------------
+   1) CONFIGURACIÓN DE FIREBASE
+   ----------------------------------------------------------------
+   Reemplaza el objeto de abajo con el que te da Firebase Console:
+   Project settings → General → "Your apps" → SDK setup and config.
+
+   En Firestore (Build → Firestore Database) crea la base en modo
+   producción y usa estas reglas mínimas para empezar (ajústalas
+   luego, esto es abierto para que funcione de inmediato):
+
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /integrantes/{docId} {
+         allow read, write: if true;
+       }
+     }
+   }
+------------------------------------------------------------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyA0PupYYs7COLiU5mKR-36chwwhIhNepNQ",
+  authDomain: "personal-activo.firebaseapp.com",
+  databaseURL: "https://personal-activo-default-rtdb.firebaseio.com",
+  projectId: "personal-activo",
+  storageBucket: "personal-activo.firebasestorage.app",
+  messagingSenderId: "721408818301",
+  appId: "1:721408818301:web:b5cf5b4b966b9eedcf8514",
+  measurementId: "G-6K9635PTLM"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
+  onSnapshot, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const colRef = collection(db, "integrantes");
+
+const textoSync = document.getElementById("textoSync");
+const puntoVivo = document.getElementById("puntoVivo");
+
+function marcarConectado(){
+    textoSync.textContent = "Sincronizado";
+    puntoVivo.classList.remove("offline");
+}
+
+function marcarDesconectado(){
+    textoSync.textContent = "Sin conexión";
+    puntoVivo.classList.add("offline");
+}
+
+/* ----------------------------------------------------------------
+   2) RENDER
+------------------------------------------------------------------- */
+const contenedor = document.getElementById("equipo");
+const vacioMsg = document.getElementById("vacioMsg");
+
+function obtenerClase(estado){
+    if(estado==="En Planta 1") return "planta1";
+    if(estado==="En Planta 2") return "planta2";
+    return "fuera";
+}
+
+function inicialDe(nombre){
+    return (nombre || "?").trim().charAt(0).toUpperCase() || "?";
+}
+
+function formatearFecha(timestamp){
+    if(!timestamp) return "Sin registro aún";
+    const fecha = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return fecha.toLocaleString("es-MX", {
+        day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"
+    });
+}
+
+function actualizarContadores(personas){
+    let p1=0, p2=0, out=0;
+    personas.forEach(p=>{
+        if(p.estado === "En Planta 1") p1++;
+        else if(p.estado === "En Planta 2") p2++;
+        else out++;
+    });
+    document.getElementById("countP1").textContent = p1;
+    document.getElementById("countP2").textContent = p2;
+    document.getElementById("countOut").textContent = out;
+}
+
+function crearTarjeta(persona){
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.id = persona.id;
+
+    const estado = persona.estado || "Fuera de Plantas";
+    const nombre = persona.nombre || "Sin nombre";
+
+    card.innerHTML = `
+        <div class="card-top">
+            <div class="avatar">${inicialDe(nombre)}</div>
+            <div class="nombre-bloque">
+                <div class="nombre" data-rol="nombre-texto">${nombre}</div>
+                <input class="nombre-input" data-rol="nombre-input" type="text" value="${nombre}" maxlength="40">
+                <div class="fecha" data-rol="fecha">${formatearFecha(persona.actualizado)}</div>
+            </div>
+            <button class="icon-btn" data-rol="editar" title="Editar nombre" aria-label="Editar nombre">✎</button>
+            <button class="icon-btn eliminar" data-rol="eliminar" title="Eliminar integrante" aria-label="Eliminar integrante">✕</button>
+        </div>
+
+        <div class="estado ${obtenerClase(estado)}" data-rol="estado-badge">${estado}</div>
+
+        <select data-rol="select-estado">
+            <option ${estado==="En Planta 1" ? "selected":""}>En Planta 1</option>
+            <option ${estado==="En Planta 2" ? "selected":""}>En Planta 2</option>
+            <option ${estado==="Fuera de Plantas" ? "selected":""}>Fuera de Plantas</option>
+        </select>
+    `;
+
+    // Cambiar estado
+    card.querySelector('[data-rol="select-estado"]').addEventListener("change", async (e)=>{
+        await updateDoc(doc(db, "integrantes", persona.id), {
+            estado: e.target.value,
+            actualizado: serverTimestamp()
+        });
+    });
+
+    // Editar nombre — mostrar input
+    const nombreTexto = card.querySelector('[data-rol="nombre-texto"]');
+    const nombreInput = card.querySelector('[data-rol="nombre-input"]');
+    const btnEditar = card.querySelector('[data-rol="editar"]');
+
+    function activarEdicion(){
+        nombreTexto.style.display = "none";
+        nombreInput.style.display = "block";
+        nombreInput.focus();
+        nombreInput.select();
+    }
+
+    async function guardarNombre(){
+        const nuevoNombre = nombreInput.value.trim();
+        nombreInput.style.display = "none";
+        nombreTexto.style.display = "block";
+        if(nuevoNombre && nuevoNombre !== nombre){
+            await updateDoc(doc(db, "integrantes", persona.id), {
+                nombre: nuevoNombre
+            });
+        } else {
+            nombreInput.value = nombre;
+        }
+    }
+
+    btnEditar.addEventListener("click", activarEdicion);
+    nombreTexto.addEventListener("dblclick", activarEdicion);
+    nombreInput.addEventListener("blur", guardarNombre);
+    nombreInput.addEventListener("keydown", (e)=>{
+        if(e.key === "Enter") nombreInput.blur();
+        if(e.key === "Escape"){
+            nombreInput.value = nombre;
+            nombreInput.blur();
+        }
+    });
+
+    // Eliminar integrante
+    card.querySelector('[data-rol="eliminar"]').addEventListener("click", async ()=>{
+        if(confirm(`¿Eliminar a ${nombre} del panel?`)){
+            await deleteDoc(doc(db, "integrantes", persona.id));
+        }
+    });
+
+    return card;
+}
+
+function renderizarTodo(personas){
+    contenedor.innerHTML = "";
+
+    if(personas.length === 0){
+        contenedor.appendChild(vacioMsg);
+        actualizarContadores(personas);
+        return;
+    }
+
+    personas.forEach(p=>{
+        contenedor.appendChild(crearTarjeta(p));
+    });
+
+    actualizarContadores(personas);
+}
+
+/* ----------------------------------------------------------------
+   3) SUSCRIPCIÓN EN TIEMPO REAL
+------------------------------------------------------------------- */
+const q = query(colRef, orderBy("nombre"));
+
+onSnapshot(q,
+    (snapshot)=>{
+        marcarConectado();
+        const personas = snapshot.docs.map(d=>({ id:d.id, ...d.data() }));
+        renderizarTodo(personas);
+    },
+    (error)=>{
+        console.error("Error de Firestore:", error);
+        marcarDesconectado();
+    }
+);
+
+/* ----------------------------------------------------------------
+   4) AGREGAR NUEVO INTEGRANTE
+------------------------------------------------------------------- */
+const inputNuevoNombre = document.getElementById("inputNuevoNombre");
+const btnAgregar = document.getElementById("btnAgregar");
+
+async function agregarIntegrante(){
+    const nombre = inputNuevoNombre.value.trim();
+    if(!nombre) return;
+
+    btnAgregar.disabled = true;
+    try{
+        await addDoc(colRef, {
+            nombre: nombre,
+            estado: "Fuera de Plantas",
+            actualizado: serverTimestamp()
+        });
+        inputNuevoNombre.value = "";
+        inputNuevoNombre.focus();
+    } catch(err){
+        console.error("No se pudo agregar:", err);
+        alert("No se pudo agregar el integrante. Revisa la consola y la configuración de Firebase.");
+    } finally{
+        btnAgregar.disabled = false;
+    }
+}
+
+btnAgregar.addEventListener("click", agregarIntegrante);
+inputNuevoNombre.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter") agregarIntegrante();
+});
+
+</script>
+
+</body>
+</html>
