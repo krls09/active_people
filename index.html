@@ -405,6 +405,75 @@ select{
 }
 
 /* ============================================================
+   PANEL DE RESET AUTOMÁTICO
+   ============================================================ */
+.reset-panel{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--grafito-900);
+    border:1px solid var(--linea);
+    border-radius:var(--radio-m);
+    padding:14px 18px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+}
+
+.reset-panel label{
+    font-size:.85rem;
+    color:var(--texto-secundario);
+    font-weight:600;
+    white-space:nowrap;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.reset-panel label span{ font-size:1rem; }
+
+.reset-panel input[type="time"]{
+    background:var(--grafito-800);
+    border:1px solid var(--linea);
+    color:var(--texto-principal);
+    padding:9px 14px;
+    border-radius:var(--radio-s);
+    font-size:.9rem;
+    font-family:var(--fuente-mono);
+    cursor:pointer;
+    min-width:120px;
+}
+
+.reset-panel input[type="time"]:focus{
+    outline:2px solid var(--acento);
+    outline-offset:2px;
+}
+
+.reset-panel .reset-info{
+    font-size:.78rem;
+    color:var(--texto-terciario);
+    flex:1;
+    min-width:160px;
+}
+
+.reset-panel .reset-info.activo{ color:var(--planta2); }
+
+.btn-reset{
+    background:transparent;
+    color:var(--fuera);
+    border:1px solid var(--fuera);
+    padding:9px 18px;
+    border-radius:var(--radio-s);
+    font-weight:600;
+    font-size:.85rem;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+    white-space:nowrap;
+}
+
+.btn-reset:hover{ background:var(--fuera); color:#fff; }
+.btn-reset:disabled{ opacity:.4; cursor:not-allowed; }
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media(max-width:680px){
@@ -475,6 +544,14 @@ select{
     <button class="btn" id="btnAgregar">+ Agregar integrante</button>
 </div>
 
+<div class="reset-panel">
+    <label for="horaReset"><span>🕐</span> Reset automático a las:</label>
+    <input type="time" id="horaReset" value="18:00">
+    <span class="reset-info" id="resetInfo">Sin programar</span>
+    <button class="btn-reset" id="btnProgramar">Programar</button>
+    <button class="btn-reset" id="btnCancelarReset" style="display:none">Cancelar</button>
+</div>
+
 <div class="grid" id="equipo">
     <div class="vacio" id="vacioMsg">
         <strong>Aún no hay integrantes</strong>
@@ -485,29 +562,10 @@ select{
 </div>
 
 <!-- ============================================================
-     FIREBASE
+     Autor: Carlos Ernesto Esteban Montejo
      ============================================================ -->
 <script type="module">
 
-/* ----------------------------------------------------------------
-   1) CONFIGURACIÓN DE FIREBASE
-   ----------------------------------------------------------------
-   Reemplaza el objeto de abajo con el que te da Firebase Console:
-   Project settings → General → "Your apps" → SDK setup and config.
-
-   En Firestore (Build → Firestore Database) crea la base en modo
-   producción y usa estas reglas mínimas para empezar (ajústalas
-   luego, esto es abierto para que funcione de inmediato):
-
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /integrantes/{docId} {
-         allow read, write: if true;
-       }
-     }
-   }
-------------------------------------------------------------------- */
 const firebaseConfig = {
   apiKey: "AIzaSyA0PupYYs7COLiU5mKR-36chwwhIhNepNQ",
   authDomain: "personal-activo.firebaseapp.com",
@@ -522,7 +580,7 @@ const firebaseConfig = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
   getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, serverTimestamp, query, orderBy
+  onSnapshot, serverTimestamp, query, orderBy, writeBatch, getDocs
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
@@ -542,9 +600,7 @@ function marcarDesconectado(){
     puntoVivo.classList.add("offline");
 }
 
-/* ----------------------------------------------------------------
-   2) RENDER
-------------------------------------------------------------------- */
+
 const contenedor = document.getElementById("equipo");
 const vacioMsg = document.getElementById("vacioMsg");
 
@@ -677,9 +733,7 @@ function renderizarTodo(personas){
     actualizarContadores(personas);
 }
 
-/* ----------------------------------------------------------------
-   3) SUSCRIPCIÓN EN TIEMPO REAL
-------------------------------------------------------------------- */
+
 const q = query(colRef, orderBy("nombre"));
 
 onSnapshot(q,
@@ -694,9 +748,7 @@ onSnapshot(q,
     }
 );
 
-/* ----------------------------------------------------------------
-   4) AGREGAR NUEVO INTEGRANTE
-------------------------------------------------------------------- */
+
 const inputNuevoNombre = document.getElementById("inputNuevoNombre");
 const btnAgregar = document.getElementById("btnAgregar");
 
@@ -725,6 +777,73 @@ btnAgregar.addEventListener("click", agregarIntegrante);
 inputNuevoNombre.addEventListener("keydown", (e)=>{
     if(e.key === "Enter") agregarIntegrante();
 });
+
+// ---- RESET AUTOMÁTICO ----
+const horaResetInput  = document.getElementById("horaReset");
+const resetInfo       = document.getElementById("resetInfo");
+const btnProgramar    = document.getElementById("btnProgramar");
+const btnCancelarReset= document.getElementById("btnCancelarReset");
+
+let resetTimer = null;
+
+async function ejecutarReset(){
+    try{
+        const snapshot = await getDocs(colRef);
+        if(snapshot.empty) return;
+        const batch = writeBatch(db);
+        snapshot.forEach(d=>{
+            batch.update(doc(db, "integrantes", d.id), {
+                estado: "Fuera de Plantas",
+                actualizado: serverTimestamp()
+            });
+        });
+        await batch.commit();
+    } catch(err){
+        console.error("Error en reset automático:", err);
+    }
+}
+
+function programarReset(){
+    const valor = horaResetInput.value;
+    if(!valor) return;
+
+    const [hh, mm] = valor.split(":").map(Number);
+    const ahora = new Date();
+    const objetivo = new Date();
+    objetivo.setHours(hh, mm, 0, 0);
+
+    if(objetivo <= ahora) objetivo.setDate(objetivo.getDate() + 1);
+
+    const msRestantes = objetivo - ahora;
+    const h = Math.floor(msRestantes / 3600000);
+    const m = Math.floor((msRestantes % 3600000) / 60000);
+
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(async ()=>{
+        await ejecutarReset();
+        resetInfo.textContent = `Ejecutado a las ${valor} ✓`;
+        resetInfo.classList.remove("activo");
+        btnProgramar.style.display = "inline-flex";
+        btnCancelarReset.style.display = "none";
+    }, msRestantes);
+
+    resetInfo.textContent = `Activo — se ejecuta en ${h}h ${m}m (${valor})`;
+    resetInfo.classList.add("activo");
+    btnProgramar.style.display = "none";
+    btnCancelarReset.style.display = "inline-flex";
+}
+
+function cancelarReset(){
+    clearTimeout(resetTimer);
+    resetTimer = null;
+    resetInfo.textContent = "Sin programar";
+    resetInfo.classList.remove("activo");
+    btnProgramar.style.display = "inline-flex";
+    btnCancelarReset.style.display = "none";
+}
+
+btnProgramar.addEventListener("click", programarReset);
+btnCancelarReset.addEventListener("click", cancelarReset);
 
 </script>
 
