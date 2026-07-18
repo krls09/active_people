@@ -1,0 +1,10 @@
+{
+  "name": "reset-fuera-plantas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reset diario automático del estado de integrantes a 'Fuera de Plantas' vía GitHub Actions.",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
