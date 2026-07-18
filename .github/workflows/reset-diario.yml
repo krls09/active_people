@@ -1,0 +1,30 @@
+name: Reset diario - Fuera de Plantas
+
+on:
+  schedule:
+    # 23:10 UTC = 5:10 PM hora de Yucatán (UTC-6, sin horario de verano)
+    - cron: "10 23 * * *"
+  # Permite ejecutarlo manualmente desde la pestaña "Actions" de GitHub,
+  # útil para probar que todo funciona antes de confiar en el horario.
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: npm install
+        working-directory: .
+
+      - name: Ejecutar reset
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node reset-fuera-plantas.mjs
